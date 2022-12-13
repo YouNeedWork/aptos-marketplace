@@ -1,0 +1,12 @@
+nft-rest-backend/target/
+nft-reset-backend/.idea/
+market-contract-apt/.idea/
+market-contract-apt/build/
+market-contract-apt/target/
+market-contract-sui/.idea/
+market-contract-sui/build/
+market-contract-sui/target/
+market-interface/.idea/
+market-interface/node_modules/
+
+
