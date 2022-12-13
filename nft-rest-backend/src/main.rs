@@ -6,6 +6,12 @@ use actix_web::{get, web, App, HttpServer, Responder};
 use dotenvy::dotenv;
 use crate::db::get_connection_pool;
 
+#[macro_use]
+extern crate diesel_migrations;
+#[macro_use]
+extern crate diesel;
+
+
 mod api;
 mod db;
 mod models;
