@@ -10,7 +10,6 @@ export default function LaunchPad() {
 
     const source = "0xc2e13d24dbdfe8cbf9f28467c5befdfc47bdfdcb31a5c674fb0ded6a9f198ce4";
 
-
     const {
         autoConnect,
         connect,
