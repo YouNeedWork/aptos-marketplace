@@ -167,7 +167,7 @@ module CargosMarket::merkle_proof {
         vector::push_back(&mut proof, x"2e7d2c03a9507ae265ecf5b5356885a53393a2029d241394997265a1a25aefc6");
         let root = x"aea9dd4249dcecf97ca6a1556db7f21ebd6a40bbec0243ca61b717146a08c347";
         let leaf = x"ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb";
-        assert!(verify(&proof, root, leaf), 0);
+        assert!(!verify(&proof, root, leaf), 0);
     }
 
     #[test]

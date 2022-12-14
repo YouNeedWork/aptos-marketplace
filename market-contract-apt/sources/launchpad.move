@@ -155,7 +155,7 @@ module CargosMarket::launchpad {
         assert!(now > launch_data.public_sale_mint_time, ESALE_NOT_STARTED);
 
         // check merkle_proof
-        assert!(merkle_proof::verify(&proof, launch_data.merkle_root, bcs::to_bytes(&receiver_addr)) == false,INVALID_PROOF);
+        assert!(merkle_proof::verify(&proof, launch_data.merkle_root, std::hash::sha2_256(bcs::to_bytes(&receiver_addr))) == false,INVALID_PROOF);
 
         // check already minted.
         if (table::contains(&launch_data.minted_by_users, receiver_addr)) {
