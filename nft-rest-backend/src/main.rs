@@ -1,10 +1,9 @@
-use std::env;
+use actix_web::{get, web, App, HttpServer, Responder};
 use anyhow::Result;
+use dotenvy::dotenv;
+use std::env;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-use actix_web::{get, web, App, HttpServer, Responder};
-use dotenvy::dotenv;
-use crate::db::get_connection_pool;
 
 #[macro_use]
 extern crate diesel_migrations;
@@ -12,15 +11,14 @@ extern crate diesel_migrations;
 extern crate diesel;
 
 
-mod api;
-mod db;
-mod models;
-mod schema;
+use nft_rest_backend::api;
+use nft_rest_backend::db;
+use nft_rest_backend::models;
+use nft_rest_backend::schema;
 
 #[cfg(unix)]
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
-
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -28,33 +26,27 @@ async fn main() -> Result<()> {
     tracing_log_init();
 
     let url = env::var(&"CARGOS")?;
-    let pool = get_connection_pool(&url);
+    let pool = db::get_connection_pool(&url);
     let url = env::var(&"APT")?;
-    let apt_pool = get_connection_pool(&url);
+    let apt_pool = db::get_connection_pool(&url);
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(apt_pool.clone()))
             .service(api::collection::all_collection)
-            .app_data(web::JsonConfig::default().limit(4096))
+            .service(api::profile::all_profile)
     })
-        .bind(("0.0.0.0", 8080))?
-        .run()
-        .await?;
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await?;
 
     Ok(())
 }
 
-
-fn tracing_log_init(){
+fn tracing_log_init() {
     let subscriber = FmtSubscriber::builder()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
-        .with_max_level(Level::INFO)
-        // completes the builder.
+        .with_max_level(Level::TRACE)
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }

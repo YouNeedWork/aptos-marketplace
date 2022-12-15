@@ -1,22 +1,30 @@
-use actix_web::{get, web, App, HttpServer, Responder, post, delete, put, HttpResponse};
-use diesel::PgConnection;
-use diesel::r2d2::{ConnectionManager, PooledConnection};
 use crate::db::DbPool;
 use crate::models;
+use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Responder};
+use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel::PgConnection;
+use tracing::{info, trace};
+use crate::models::query_posts;
 
 #[get("/api/profile")]
-pub async fn all_profile(pool: web::Data<DbPool>, apt_pool: web::Data<DbPool>,address: web::Path<String>) -> impl Responder {
+pub async fn all_profile(
+    pool: web::Data<DbPool>,
+    wallet: web::Path<String>
+ ) -> impl Responder {
+    let conn: PooledConnection<ConnectionManager<PgConnection>> =
+        pool.get().expect("couldn't get db connection from pool");
 
-    let conn:PooledConnection<ConnectionManager<PgConnection>> = pool.get().expect("couldn't get db connection from pool");
-    let nfts = models::token_ownerships::query_nfts_by_owner(conn,address.to_string()).map_err(
+    info!("wallet: {}",wallet);
+
+    let nfts = query_posts(conn).map_err(
         |e| {
-                     eprintln!("{}", e);
-                     HttpResponse::InternalServerError().finish()
-        }
-    )?;
+            trace!("Error querying posts: {}", e);
+            HttpResponse::InternalServerError().finish()
+        },
+    ).unwrap();
 
 
-    Ok(HttpResponse::Ok().json(nfts))
+    HttpResponse::Ok().json(nfts)
 }
 
 #[post("/api/profile")]

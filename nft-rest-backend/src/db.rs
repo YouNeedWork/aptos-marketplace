@@ -3,17 +3,15 @@ use diesel::r2d2;
 use diesel::r2d2::{ConnectionManager, Pool};
 use tracing::info;
 
-
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
-pub fn get_connection_pool(url:&str) -> DbPool {
-
+pub fn get_connection_pool(url: &str) -> DbPool {
     let manager = ConnectionManager::<PgConnection>::new(url);
 
     Pool::builder()
         .max_size(20)
-         .test_on_check_out(true)
-         //.connection_customizer(Box::new())
-         .build(manager)
-         .expect("Could not build connection pool")
+        .test_on_check_out(true)
+        //.connection_customizer(Box::new())
+        .build(manager)
+        .expect("Could not build connection pool")
 }
