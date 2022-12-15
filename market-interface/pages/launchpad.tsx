@@ -46,12 +46,34 @@ export default function LaunchPad() {
         "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa",
     ];
 
+    const hex2a = (hex: String) => {
+        var str = '';
+        for (var i = 0; i < hex.length; i += 2)
+            str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+        return str;
+    }
+
     const { MerkleTree } = require('merkletreejs')
     const SHA256 = require('crypto-js/sha256')
     const leaves = wl.map(x => SHA256(x))
     const tree = new MerkleTree(leaves, SHA256, { sortPairs: true })
     let root = tree.getRoot().toString('hex')
     console.log(root);
+
+    console.log(SHA256("0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa").toString());
+    console.log(SHA256("5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa").toString());
+
+    let a = Buffer.from("5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa", "hex");
+    var l = a.length; // in bytes
+    var output = [];
+    for (var i = 0; i < l; i++) {
+        var char = a.toString('hex', i, i + 1); // i is byte index of hex
+        output.push(char);
+    };
+    console.log(output);
+
+    console.log(a);
+    console.log(SHA256(output).toString())
 
     const leaf = SHA256(account?.address)
     const proof = SHA256("0xcaf1fbec4d4a122e2b2c1916259c81d9dee07b02a081aae1137a4fece01a6970");

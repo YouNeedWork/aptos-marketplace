@@ -14,6 +14,8 @@ module CargosMarket::launchpad {
     use aptos_std::table::Table;
     use aptos_std::table;
     use CargosMarket::merkle_proof;
+    #[test_only]
+    use std::signer::address_of;
 
 
     const INVALID_SIGNER: u64 = 0;
@@ -139,8 +141,8 @@ module CargosMarket::launchpad {
 
     public entry fun private_mint(
         receiver: &signer,
-        launch_resouce_account: address,
         proof: vector<vector<u8>>,
+        launch_resouce_account: address,
         number: u64,
     ) acquires ResourceInfo, Launch {
         let receiver_addr = signer::address_of(receiver);
@@ -470,5 +472,21 @@ module CargosMarket::launchpad {
             };
         vector::push_back(&mut v1, bit_vector::new(remaining));
         v1
+    }
+
+
+
+    #[test(account = @0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa)]
+    fun test_hash(account: signer){
+        use std::bcs;
+        use aptos_std::debug;
+        use std::hash;
+
+        let address = address_of(&account);
+        let wallet_byte = bcs::to_bytes<address>(&address);
+        debug::print<vector<u8>>(&wallet_byte);
+        debug::print<vector<u8>>(&hash::sha2_256(wallet_byte));
+        //0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5
+        //0x20b1ecb75e57727028a749089a8055f137527f1697b8df7e49c6be283cad85bc
     }
 }
