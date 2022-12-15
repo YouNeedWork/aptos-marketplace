@@ -151,7 +151,7 @@ module CargosMarket::launchpad {
         let launch_data = borrow_global_mut<Launch>(launch_resouce_account);
         let now = aptos_framework::timestamp::now_seconds();
         // check merkle_proof
-        assert!(merkle_proof::verify(&proof, launch_data.merkle_root, bcs::to_bytes(&receiver_addr)),INVALID_PROOF);
+        assert!(merkle_proof::verify(&proof, launch_data.merkle_root, hash::sha2_256(bcs::to_bytes(&receiver_addr))),INVALID_PROOF);
         assert!(number <= launch_data.presale_mint_price, INVALID_AMOUNT);
         assert!(launch_data.paused == false, EPAUSED);
         assert!(launch_data.minted != launch_data.total_supply, ESOLD_OUT);
