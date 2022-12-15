@@ -1,5 +1,6 @@
-import { Types } from 'aptos';
+import { Types, BCS } from 'aptos';
 import { useWallet } from '@manahippo/aptos-wallet-adapter';
+import { buffer } from 'stream/consumers';
 
 
 export default function LaunchPad() {
@@ -8,7 +9,7 @@ export default function LaunchPad() {
     const public_mint = "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa::launchpad::public_mint";
     const private_mint = "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa::launchpad::private_mint";
 
-    const source = "0xc2e13d24dbdfe8cbf9f28467c5befdfc47bdfdcb31a5c674fb0ded6a9f198ce4";
+    const source = "0x7757650f258e2a1b23660d51f925439967147a92dc839e1591a327afa6bae34d";
 
     const {
         autoConnect,
@@ -40,11 +41,26 @@ export default function LaunchPad() {
     merkle_root: vector<u8>,
     seeds: vector<u8>, 
     */
-    const proof = [
+    const wl = [
         "0xcaf1fbec4d4a122e2b2c1916259c81d9dee07b02a081aae1137a4fece01a6970",
         "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa",
     ];
 
+    const { MerkleTree } = require('merkletreejs')
+    const SHA256 = require('crypto-js/sha256')
+    const leaves = wl.map(x => SHA256(x))
+    const tree = new MerkleTree(leaves, SHA256, { sortPairs: true })
+    let root = tree.getRoot().toString('hex')
+    console.log(root);
+
+    const leaf = SHA256(account?.address)
+    const proof = SHA256("0xcaf1fbec4d4a122e2b2c1916259c81d9dee07b02a081aae1137a4fece01a6970");
+    console.log(proof);
+
+
+    console.log("root:" + root);
+    root = BCS.bcsSerializeBytes(Buffer.from(root, "hex"))
+    console.log("root:", root);
     const init_nft = async () => {
         const txOptions = {
             max_gas_amount: '100000',
@@ -76,8 +92,8 @@ export default function LaunchPad() {
                 "200",
                 [true, true, true, true, true],
                 [true, true, true, true, true],
-                "0xc2b409be19d32163a27fadd2a8f1754ab7b0f84fc247c8971e5e04d294f0e043",
-                '123asdfasfsadf',
+                root,
+                '1123',
             ]
         };
 
@@ -110,7 +126,7 @@ export default function LaunchPad() {
             type_arguments: [],
             arguments: [
                 source,
-                proof,
+                [],
                 "1",
             ]
         };
