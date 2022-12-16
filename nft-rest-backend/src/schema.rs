@@ -44,12 +44,12 @@ diesel::table! {
 diesel::table! {
     current_token_ownerships (token_data_id_hash, property_version, owner_address) {
         token_data_id_hash -> Varchar,
-        property_version -> Numeric,
+        property_version -> Int8,
         owner_address -> Varchar,
         creator_address -> Varchar,
         collection_name -> Varchar,
         name -> Varchar,
-        amount -> Numeric,
+        amount -> Int8,
         token_properties -> Jsonb,
         last_transaction_version -> Int8,
         inserted_at -> Timestamp,

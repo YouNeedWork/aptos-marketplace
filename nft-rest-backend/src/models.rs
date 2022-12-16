@@ -37,12 +37,12 @@ pub fn query_posts(mut db: PooledConnection<ConnectionManager<PgConnection>>) ->
 #[diesel(table_name = current_token_ownerships)]
 pub struct CurrentTokenOwnership {
     pub token_data_id_hash: String,
-    pub property_version: BigDecimal,
+    pub property_version: i64,
     pub owner_address: String,
     pub creator_address: String,
     pub collection_name: String,
     pub name: String,
-    pub amount: BigDecimal,
+    pub amount: i64,
     pub token_properties: Value,
     pub last_transaction_version: i64,
     pub inserted_at:chrono::NaiveDateTime,
@@ -53,6 +53,7 @@ pub fn query_nfts_by_owner(mut db: PooledConnection<ConnectionManager<PgConnecti
 
     let results = current_token_ownerships
         .filter(owner_address.eq(user_wallet))
+        .filter(amount.gt(0))
         .limit(20)
         .load::<CurrentTokenOwnership>(&mut *db)?;
 
