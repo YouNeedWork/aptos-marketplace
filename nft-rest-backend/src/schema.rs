@@ -56,18 +56,8 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    posts (id) {
-        id -> Int4,
-        title -> Varchar,
-        body -> Text,
-        published -> Bool,
-    }
-}
-
 diesel::allow_tables_to_appear_in_same_query!(
     current_collection_datas,
     current_token_datas,
     current_token_ownerships,
-    posts,
 );

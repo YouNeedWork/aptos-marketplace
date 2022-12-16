@@ -1,5 +1,6 @@
 use anyhow::Result;
 use bigdecimal::BigDecimal;
+use diesel::associations::HasTable;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use field_count::FieldCount;
@@ -11,25 +12,7 @@ use tracing::info;
 use crate::schema;
 use schema::*;
 
-#[derive(Queryable,Deserialize, Identifiable, Insertable, Serialize)]
-pub struct Post {
-    pub id: i32,
-    pub title: String,
-    pub body: String,
-    pub published: bool,
-}
-
-pub fn query_posts(mut db: PooledConnection<ConnectionManager<PgConnection>>) -> Result<Vec<Post>> {
-    use crate::schema::posts::dsl::*;
-
-    info!("Querying posts");
-
-    let results = posts
-        .load::<Post>(&mut *db)?;
-
-    //println!("Displaying {} posts", results.len());
-    Ok(results)
-}
+use crate::schema::current_token_datas::dsl::current_token_datas;
 
 
 #[derive(Debug,Queryable, Deserialize, FieldCount, Identifiable, Insertable, Serialize)]
@@ -47,6 +30,7 @@ pub struct CurrentTokenOwnership {
     pub last_transaction_version: i64,
     pub inserted_at:chrono::NaiveDateTime,
 }
+
 
 pub fn query_nfts_by_owner(mut db: PooledConnection<ConnectionManager<PgConnection>>, user_wallet:&str) -> Result<Vec<CurrentTokenOwnership>> {
     use crate::schema::current_token_ownerships::dsl::*;

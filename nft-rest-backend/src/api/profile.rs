@@ -4,7 +4,7 @@ use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Resp
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 use tracing::{info, trace};
-use crate::models::{query_nfts_by_owner, query_posts};
+use crate::models::current_token_ownerships::query_nfts_by_owner;
 
 
 #[get("profile/{wallet}")]
