@@ -11,7 +11,7 @@ extern crate diesel_migrations;
 extern crate diesel;
 
 
-use nft_rest_backend::api;
+use nft_rest_backend::{api, AppState};
 use nft_rest_backend::db;
 use nft_rest_backend::models;
 use nft_rest_backend::schema;
@@ -19,6 +19,7 @@ use nft_rest_backend::schema;
 #[cfg(unix)]
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 
 #[actix_web::main]
 async fn main() -> Result<()> {
@@ -30,11 +31,17 @@ async fn main() -> Result<()> {
     let url = env::var(&"APT")?;
     let apt_pool = db::get_connection_pool(&url);
 
+    let app_state = AppState {
+        market_db: pool,
+        index_db: apt_pool,
+    };
+
+
+
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .service(api::collection::all_collection)
-            .service(api::profile::all_profile)
+            .app_data(web::Data::new(app_state.clone()))
+            .service(web::scope("/api").service(api::profile::all_profile))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
