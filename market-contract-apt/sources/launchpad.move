@@ -16,6 +16,8 @@ module CargosMarket::launchpad {
     use CargosMarket::merkle_proof;
     #[test_only]
     use std::signer::address_of;
+    use aptos_framework::event;
+    use aptos_framework::event::EventHandle;
 
 
     const INVALID_SIGNER: u64 = 0;
@@ -27,6 +29,18 @@ module CargosMarket::launchpad {
     const EPAUSED: u64 = 6;
     const EINVALID_FREEZE:u64 = 7;
     const INVALID_PROOF: u64 = 8;
+
+
+    struct TokenMintingEvent has drop, store {
+        token_receiver_address: address,
+        token_data_id: token::TokenDataId,
+    }
+
+    struct ClamTokenEvent has drop, store {
+        token_receiver_address: address,
+        token_data_id: token::TokenDataId,
+    }
+
 
     // Launch Resource for any account who's call init
     struct Launch has key {
@@ -58,7 +72,9 @@ module CargosMarket::launchpad {
     }
 
     struct ResourceInfo has key {
-        resource_cap: account::SignerCapability
+        resource_cap: account::SignerCapability,
+        mint_event:EventHandle<TokenMintingEvent>,
+        clam_event:EventHandle<ClamTokenEvent>,
     }
 
     public entry fun init_nft(
@@ -88,9 +104,14 @@ module CargosMarket::launchpad {
     ) {
         let (_resource, resource_cap) = account::create_resource_account(account, seeds);
         let resource_signer_from_cap = account::create_signer_with_capability(&resource_cap);
+
         move_to<ResourceInfo>(
             &resource_signer_from_cap,
-            ResourceInfo { resource_cap }
+            ResourceInfo {
+                resource_cap,
+                mint_event:account::new_event_handle<TokenMintingEvent>(&resource_signer_from_cap),
+                clam_event:account::new_event_handle<ClamTokenEvent>(&resource_signer_from_cap)
+            }
         );
 
         assert!(royalty_points_denominator > 0, error::invalid_argument(EINVALID_ROYALTY_NUMERATOR_DENOMINATOR));
@@ -202,6 +223,11 @@ module CargosMarket::launchpad {
                 freeze_token(launch_data,receiver_addr,t);
             };
 
+            event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+                token_receiver_address:receiver_addr,
+                token_data_id
+            });
+
             i =i+1;
         };
 
@@ -273,6 +299,11 @@ module CargosMarket::launchpad {
                 freeze_token(launch_data,receiver_addr,t);
             };
 
+            event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+                token_receiver_address:receiver_addr,
+                token_data_id
+            });
+
             i =i+1;
         };
 
@@ -285,19 +316,27 @@ module CargosMarket::launchpad {
 
 
     // Then mint done. and end for freeze time. users can clam tokens
-    public entry fun clam_tokens(recver:&signer,launch_resouce_account: address) acquires Launch {
-        let recver_addr = signer::address_of(recver);
+    public entry fun clam_tokens(recver:&signer,launch_resouce_account: address) acquires Launch,ResourceInfo {
+        let receiver_addr = signer::address_of(recver);
+        let resource_data = borrow_global<ResourceInfo>(launch_resouce_account);
         let launch_data = borrow_global_mut<Launch>(launch_resouce_account);
         assert!(launch_data.freeze == true, EINVALID_FREEZE);
-        assert!(table::contains(&launch_data.freeze_tokens,recver_addr), EINVALID_FREEZE);
+        assert!(table::contains(&launch_data.freeze_tokens, receiver_addr), EINVALID_FREEZE);
         token::opt_in_direct_transfer(recver,true);
 
-        let tokens = table::borrow_mut(&mut launch_data.freeze_tokens, recver_addr);
+        let tokens = table::borrow_mut(&mut launch_data.freeze_tokens, receiver_addr);
         let i = 0;
         let token_lenge = vector::length(tokens);
         while (i < token_lenge) {
             let t = vector::remove(tokens,i);
+
             token::deposit_token(recver, t);
+
+            // event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+            //     token_receiver_address:receiver_addr,
+            //     token_data_id
+            // });
+
             i = i + 1;
         }
     }
