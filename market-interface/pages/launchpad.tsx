@@ -279,10 +279,10 @@ export default function LaunchPad() {
     const tree = new MerkleTree(leaves, SHA256, { sortPairs: true })
     let root = tree.getRoot().toString('hex')
     console.log(root);
-
-    console.log(sha256forWallets("0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa").toString());
-    console.log(account?.address);
-    const leaf = sha256forWallets("0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa");
+    let addr = Array.isArray(account?.address)
+        ? JSON.stringify(account?.address, null, 2)
+        : account?.address?.toString() || account?.address?.toString() || "";
+    const leaf = sha256forWallets(addr);
     let proof = tree.getProof(leaf);
     console.log(tree.verify(proof, leaf, root));
 
@@ -364,6 +364,9 @@ export default function LaunchPad() {
                     ]
                 };
          */
+
+        console.log(proof);
+
         const payload: Types.TransactionPayload = {
             type: 'entry_function_payload',
             function: private_mint,
