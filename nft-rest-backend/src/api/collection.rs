@@ -1,4 +1,4 @@
-use actix_web::{get, web, App, HttpServer, Responder, post, delete, put};
+use actix_web::{delete, get, post, put, web, App, HttpServer, Responder};
 
 #[get("/api/collection")]
 pub async fn all_collection(name: web::Path<String>) -> impl Responder {

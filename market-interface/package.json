@@ -14,11 +14,12 @@
     "@types/node": "18.11.9",
     "@types/react": "18.0.25",
     "@types/react-dom": "18.0.9",
+    "antd": "^4.21.7",
     "daisyui": "^2.42.1",
     "eslint": "8.28.0",
     "eslint-config-next": "13.0.5",
+    "merkletreejs": "^0.3.9",
     "next": "13.0.5",
-    "antd": "^4.21.7",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "4.9.3"

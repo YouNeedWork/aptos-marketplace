@@ -14,6 +14,10 @@ module CargosMarket::launchpad {
     use aptos_std::table::Table;
     use aptos_std::table;
     use CargosMarket::merkle_proof;
+    #[test_only]
+    use std::signer::address_of;
+    use aptos_framework::event;
+    use aptos_framework::event::EventHandle;
 
 
     const INVALID_SIGNER: u64 = 0;
@@ -25,6 +29,18 @@ module CargosMarket::launchpad {
     const EPAUSED: u64 = 6;
     const EINVALID_FREEZE:u64 = 7;
     const INVALID_PROOF: u64 = 8;
+
+
+    struct TokenMintingEvent has drop, store {
+        token_receiver_address: address,
+        token_data_id: token::TokenDataId,
+    }
+
+    struct ClamTokenEvent has drop, store {
+        token_receiver_address: address,
+        token_data_id: token::TokenDataId,
+    }
+
 
     // Launch Resource for any account who's call init
     struct Launch has key {
@@ -56,7 +72,9 @@ module CargosMarket::launchpad {
     }
 
     struct ResourceInfo has key {
-        resource_cap: account::SignerCapability
+        resource_cap: account::SignerCapability,
+        mint_event:EventHandle<TokenMintingEvent>,
+        clam_event:EventHandle<ClamTokenEvent>,
     }
 
     public entry fun init_nft(
@@ -86,9 +104,14 @@ module CargosMarket::launchpad {
     ) {
         let (_resource, resource_cap) = account::create_resource_account(account, seeds);
         let resource_signer_from_cap = account::create_signer_with_capability(&resource_cap);
+
         move_to<ResourceInfo>(
             &resource_signer_from_cap,
-            ResourceInfo { resource_cap }
+            ResourceInfo {
+                resource_cap,
+                mint_event:account::new_event_handle<TokenMintingEvent>(&resource_signer_from_cap),
+                clam_event:account::new_event_handle<ClamTokenEvent>(&resource_signer_from_cap)
+            }
         );
 
         assert!(royalty_points_denominator > 0, error::invalid_argument(EINVALID_ROYALTY_NUMERATOR_DENOMINATOR));
@@ -139,23 +162,21 @@ module CargosMarket::launchpad {
 
     public entry fun private_mint(
         receiver: &signer,
-        launch_resouce_account: address,
         proof: vector<vector<u8>>,
+        launch_resouce_account: address,
         number: u64,
     ) acquires ResourceInfo, Launch {
         let receiver_addr = signer::address_of(receiver);
         let resource_data = borrow_global<ResourceInfo>(launch_resouce_account);
         let resource_signer_from_cap = account::create_signer_with_capability(&resource_data.resource_cap);
         let launch_data = borrow_global_mut<Launch>(launch_resouce_account);
-        assert!(number <= launch_data.public_mint_amount, INVALID_AMOUNT);
+        let now = aptos_framework::timestamp::now_seconds();
+        // check merkle_proof
+        assert!(merkle_proof::verify(&proof, launch_data.merkle_root, hash::sha2_256(bcs::to_bytes(&receiver_addr))),INVALID_PROOF);
+        assert!(number <= launch_data.presale_mint_price, INVALID_AMOUNT);
         assert!(launch_data.paused == false, EPAUSED);
         assert!(launch_data.minted != launch_data.total_supply, ESOLD_OUT);
-
-        let now = aptos_framework::timestamp::now_seconds();
-        assert!(now > launch_data.public_sale_mint_time, ESALE_NOT_STARTED);
-
-        // check merkle_proof
-        assert!(merkle_proof::verify(&proof, launch_data.merkle_root, std::hash::sha2_256(bcs::to_bytes(&receiver_addr))) == false,INVALID_PROOF);
+        assert!(now > launch_data.presale_mint_time, ESALE_NOT_STARTED);
 
         // check already minted.
         if (table::contains(&launch_data.minted_by_users, receiver_addr)) {
@@ -201,6 +222,11 @@ module CargosMarket::launchpad {
                 let t = token::withdraw_token(receiver, token_id,1);
                 freeze_token(launch_data,receiver_addr,t);
             };
+
+            event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+                token_receiver_address:receiver_addr,
+                token_data_id
+            });
 
             i =i+1;
         };
@@ -273,6 +299,11 @@ module CargosMarket::launchpad {
                 freeze_token(launch_data,receiver_addr,t);
             };
 
+            event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+                token_receiver_address:receiver_addr,
+                token_data_id
+            });
+
             i =i+1;
         };
 
@@ -285,19 +316,27 @@ module CargosMarket::launchpad {
 
 
     // Then mint done. and end for freeze time. users can clam tokens
-    public entry fun clam_tokens(recver:&signer,launch_resouce_account: address) acquires Launch {
-        let recver_addr = signer::address_of(recver);
+    public entry fun clam_tokens(recver:&signer,launch_resouce_account: address) acquires Launch,ResourceInfo {
+        let receiver_addr = signer::address_of(recver);
+        let resource_data = borrow_global<ResourceInfo>(launch_resouce_account);
         let launch_data = borrow_global_mut<Launch>(launch_resouce_account);
         assert!(launch_data.freeze == true, EINVALID_FREEZE);
-        assert!(table::contains(&launch_data.freeze_tokens,recver_addr), EINVALID_FREEZE);
+        assert!(table::contains(&launch_data.freeze_tokens, receiver_addr), EINVALID_FREEZE);
         token::opt_in_direct_transfer(recver,true);
 
-        let tokens = table::borrow_mut(&mut launch_data.freeze_tokens, recver_addr);
+        let tokens = table::borrow_mut(&mut launch_data.freeze_tokens, receiver_addr);
         let i = 0;
         let token_lenge = vector::length(tokens);
         while (i < token_lenge) {
             let t = vector::remove(tokens,i);
+
             token::deposit_token(recver, t);
+
+            // event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+            //     token_receiver_address:receiver_addr,
+            //     token_data_id
+            // });
+
             i = i + 1;
         }
     }
@@ -472,5 +511,21 @@ module CargosMarket::launchpad {
             };
         vector::push_back(&mut v1, bit_vector::new(remaining));
         v1
+    }
+
+
+
+    #[test(account = @0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa)]
+    fun test_hash(account: signer){
+        use std::bcs;
+        use aptos_std::debug;
+        use std::hash;
+
+        let address = address_of(&account);
+        let wallet_byte = bcs::to_bytes<address>(&address);
+        debug::print<vector<u8>>(&wallet_byte);
+        debug::print<vector<u8>>(&hash::sha2_256(wallet_byte));
+        //0xec4916dd28fc4c10d78e287ca5d9cc51ee1ae73cbfde08c6b37324cbfaac8bc5
+        //0x20b1ecb75e57727028a749089a8055f137527f1697b8df7e49c6be283cad85bc
     }
 }
