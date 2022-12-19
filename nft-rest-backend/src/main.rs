@@ -30,6 +30,7 @@ async fn main() -> Result<()> {
     let pool = db::get_connection_pool(&url);
     let url = env::var(&"APT")?;
     let apt_pool = db::get_connection_pool(&url);
+    let port = env::var(&"PORT")?.parse::<i16>().unwrap_or(8080);
 
     let app_state = AppState {
         market_db: pool,
@@ -43,7 +44,7 @@ async fn main() -> Result<()> {
             .app_data(web::Data::new(app_state.clone()))
             .service(web::scope("/api").service(api::profile::all_profile))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 9090))?
     .run()
     .await?;
 
