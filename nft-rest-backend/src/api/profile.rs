@@ -4,7 +4,20 @@ use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Resp
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 use tracing::{info, trace};
-use crate::models::current_token_ownerships::query_nfts_by_owner;
+use serde::{Deserialize, Serialize};
+
+use crate::models::current_token_datas::{CurrentTokenData, query_nfts_by_owner};
+use crate::models::current_token_ownerships::CurrentTokenOwnership;
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Nft{
+    pub creator_address: String,
+    pub collection_name: String,
+    pub name: String,
+    pub owner_address:String,
+    pub image_url:String,
+    pub token_data_id_hash:String,
+}
 
 
 #[get("profile/{wallet}")]
@@ -16,12 +29,30 @@ pub async fn all_profile(
 
     info!("wallet: {}",wallet);
 
-    let nfts = match query_nfts_by_owner(conn,&wallet) {
+    let nfts:Vec<(CurrentTokenData,CurrentTokenOwnership)> = match query_nfts_by_owner(conn,&wallet) {
         Ok(nfts) => nfts,
         Err(_) =>  return HttpResponse::InternalServerError().finish(),
     };
 
-    HttpResponse::Ok().json(nfts)
+    let results = nfts.iter().map(|(token_data,token_onwner)|{
+        let metadata_uri = token_data.metadata_uri.clone();
+
+        //req::get(&metadata_uri).send().await.unwrap().json::<serde_json::Value>().await.unwrap();
+        //let image_url = metadata_uri.replace("ipfs://","https://ipfs.io/ipfs/");
+
+        let nft = Nft{
+            creator_address: token_data.creator_address.clone(),
+            collection_name: token_data.collection_name.clone(),
+            name: token_data.name.clone(),
+            owner_address: token_onwner.owner_address.clone(),
+            image_url: token_data.metadata_uri.clone(),
+            token_data_id_hash: token_data.token_data_id_hash.clone(),
+        };
+
+        nft
+    }).collect::<Vec<Nft>>();
+
+    HttpResponse::Ok().json(results)
 }
 
 #[post("profile")]

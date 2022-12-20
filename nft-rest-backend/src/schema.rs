@@ -1,5 +1,7 @@
 // @generated automatically by Diesel CLI.
 
+use diesel::joinable;
+
 diesel::table! {
     current_collection_datas (collection_data_id_hash) {
         collection_data_id_hash -> Varchar,
@@ -55,6 +57,9 @@ diesel::table! {
         inserted_at -> Timestamp,
     }
 }
+
+
+joinable!(current_token_ownerships -> current_token_datas( token_data_id_hash ));
 
 diesel::allow_tables_to_appear_in_same_query!(
     current_collection_datas,

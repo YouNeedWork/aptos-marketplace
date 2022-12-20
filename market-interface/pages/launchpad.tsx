@@ -21,25 +21,6 @@ export default function LaunchPad() {
         wallet: currentWallet
     } = useWallet();
 
-    /* 
-    collection_name: String,
-    collection_description: String,
-    baseuri: String,
-    royalty_payee_address: address,
-    royalty_points_denominator: u64,
-    royalty_points_numerator: u64,
-    presale_mint_time: u64,
-    public_sale_mint_time: u64,
-    presale_mint_price: u64,
-    public_sale_mint_price: u64,
-    presale_mint_amount: u64,
-    public_mint_amount: u64,
-    total_supply: u64,
-    collection_mutate_setting: vector<bool>,
-    token_mutate_setting: vector<bool>,
-    merkle_root: vector<u8>,
-    seeds: vector<u8>, 
-    */
     const wl = [
         "0xcaf1fbec4d4a122e2b2c1916259c81d9dee07b02a081aae1137a4fece01a6970",
         "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa",

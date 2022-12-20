@@ -187,6 +187,7 @@ module CargosMarket::launchpad {
             table::add(&mut launch_data.minted_by_users, receiver_addr, number);
         };
 
+
         // Open transfer && transfer to coin to create
         token::opt_in_direct_transfer(receiver, true);
 

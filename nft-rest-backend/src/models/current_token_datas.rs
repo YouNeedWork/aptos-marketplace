@@ -1,7 +1,9 @@
+use std::result;
 use anyhow::Result;
 use bigdecimal::BigDecimal;
 use diesel::associations::HasTable;
 use diesel::prelude::*;
+use diesel::query_dsl::JoinWithImplicitOnClause;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use field_count::FieldCount;
 use serde::{Deserialize, Serialize};
@@ -11,6 +13,7 @@ use tracing::info;
 
 use crate::schema;
 use schema::*;
+use crate::models::current_token_ownerships::CurrentTokenOwnership;
 use crate::schema::current_token_datas::dsl::current_token_datas;
 
 
@@ -50,13 +53,28 @@ pub fn query_nfts_by_collection(
     use crate::schema::current_token_datas::dsl::*;
 
     info!("Querying nfts by collection");
-
+    // collection_data_id_hash
     let results = current_token_datas
         .filter(creator_address.eq(address))
         .filter(collection_name.eq(c_name))
         .limit(20)
         .load::<CurrentTokenData>(&mut *db)?;
 
-    //println!("Displaying {} posts", results.len());
+    println!("Displaying {} posts", results.len());
     Ok(results)
+}
+
+pub fn query_nfts_by_owner(
+    mut db: PooledConnection<ConnectionManager<PgConnection>>,
+    address: &str,
+) -> Result<Vec<(CurrentTokenData,CurrentTokenOwnership)>> {
+    use crate::schema::*;
+
+    let query = current_token_datas::table
+        .inner_join(current_token_ownerships::table);
+    let query = query
+        .filter(current_token_ownerships::owner_address.eq(address))
+        .filter(current_token_ownerships::amount.gt(BigDecimal::from(0)));
+
+    query.load::<(CurrentTokenData,CurrentTokenOwnership)>(&mut *db).map_err(|e|e.into())
 }

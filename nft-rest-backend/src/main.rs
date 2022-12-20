@@ -2,6 +2,8 @@ use actix_web::{get, web, App, HttpServer, Responder};
 use anyhow::Result;
 use dotenvy::dotenv;
 use std::env;
+use actix_cors::Cors;
+use actix_web::middleware::Logger;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -30,21 +32,27 @@ async fn main() -> Result<()> {
     let pool = db::get_connection_pool(&url);
     let url = env::var(&"APT")?;
     let apt_pool = db::get_connection_pool(&url);
-    let port = env::var(&"PORT")?.parse::<i16>().unwrap_or(8080);
 
     let app_state = AppState {
         market_db: pool,
         index_db: apt_pool,
     };
 
-
-
     HttpServer::new(move || {
         App::new()
+            .wrap(
+                Cors::default()
+                    .allowed_origin("http://localhost:3000")
+                    .allowed_methods(vec!["GET", "POST"])
+                    .supports_credentials(),
+            )
+            .wrap(Logger::default())
             .app_data(web::Data::new(app_state.clone()))
-            .service(web::scope("/api").service(api::profile::all_profile))
+            .service(web::scope("/api")
+                .service(api::profile::all_profile)
+                .service(api::collection::all_collection))
     })
-    .bind(("127.0.0.1", 9090))?
+    .bind(("127.0.0.1", 8081))?
     .run()
     .await?;
 
@@ -53,7 +61,7 @@ async fn main() -> Result<()> {
 
 fn tracing_log_init() {
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::TRACE)
+        .with_max_level(Level::DEBUG)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");

@@ -30,7 +30,7 @@ module CargosMarket::marketplace {
         items: Table<TokenId, ListedItem>
     }
 
-    public fun init_model(owner:&signer){
+    public entry fun init_model(owner:&signer){
         //init signer
         if (!exists<CargosMarket>(@CargosMarket)) {
             move_to(owner, CargosMarket {
