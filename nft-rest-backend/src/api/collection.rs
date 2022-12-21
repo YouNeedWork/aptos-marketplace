@@ -15,7 +15,6 @@ pub async fn all_collection(
     let conn: PooledConnection<ConnectionManager<PgConnection>> =
         state.index_db.get().expect("couldn't get db connection from pool");
 
-    info!("entery");
     let nft_info = match query_info_by_collection_hash(conn,&hash) {
         Ok(nft_info) => nft_info,
         Err(e) =>  {
@@ -32,7 +31,7 @@ pub async fn all_collection(
         Err(_) =>  return HttpResponse::InternalServerError().finish(),
     };
 
-    // //
+
     // let results = nfts.iter().map(|(token_data,token_onwner)|{
     //     let metadata_uri = token_data.metadata_uri.clone();
     //

@@ -6,6 +6,7 @@
 
 // 1------
 // query onwer by
+// done with query
 // "creator_address": "0xd5efd09ff3954845c23428667c63c366d7d88c2a77830063ec0f8d982d56a623",
 // "collection_name": "Aptos Polar Bears",
 // "name": "Aptos Polar Bears #2740",
@@ -13,11 +14,23 @@
 
 // 2-------
 // query all the nfts by
+// done with collection_hash_id for query params
 // "creator_address": "0xd5efd09ff3954845c23428667c63c366d7d88c2a77830063ec0f8d982d56a623",
 // "collection_name": "Aptos Polar Bears",
 
 
 
 // 3------
+//
 // query all the list Token On the database. maybe redis hash?
 // let's talk about it later.
+
+
+// 4------
+// store nft with cdn. and put store marekt database.
+//
+
+
+// 5-----
+market emit event and change the database for list buy cancel_list make_bid cancel_bid
+// 6------
