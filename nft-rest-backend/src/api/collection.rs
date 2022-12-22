@@ -15,6 +15,8 @@ pub async fn all_collection(
     let conn: PooledConnection<ConnectionManager<PgConnection>> =
         state.index_db.get().expect("couldn't get db connection from pool");
 
+    //select * from table_items where table_handle = '0xaeef8b346d7241bdc8db8b0ccc474b071e3b86f53e7dde459f154d1ea0554258' and is_deleted = 'f';
+
     let nft_info = match query_info_by_collection_hash(conn,&hash) {
         Ok(nft_info) => nft_info,
         Err(e) =>  {
