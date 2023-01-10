@@ -1,23 +1,22 @@
 use anyhow::Result;
 use bigdecimal::BigDecimal;
-use diesel::associations::HasTable;
+
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use field_count::FieldCount;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use tracing::info;
-
-use crate::schema;
-use schema::*;
-
-use crate::schema::current_token_datas::dsl::current_token_datas;
-use crate::schema::current_token_ownerships::dsl::current_token_ownerships;
-use crate::schema::current_token_ownerships::{amount, owner_address};
 
 
-#[derive(Debug,Queryable, Deserialize, FieldCount, Serialize)]
+
+
+
+
+
+
+
+#[derive(Debug, Queryable, Deserialize, FieldCount, Serialize)]
 #[diesel(primary_key(token_data_id_hash, property_version, owner_address))]
 #[diesel(table_name = current_token_ownerships)]
 pub struct CurrentTokenOwnership {
@@ -30,10 +29,13 @@ pub struct CurrentTokenOwnership {
     pub amount: BigDecimal,
     pub token_properties: Value,
     pub last_transaction_version: i64,
-    pub inserted_at:chrono::NaiveDateTime,
+    pub inserted_at: chrono::NaiveDateTime,
 }
 
-pub fn query_nfts_by_owner(mut db: PooledConnection<ConnectionManager<PgConnection>>, user_wallet:&str) -> Result<Vec<CurrentTokenOwnership>> {
+pub fn query_nfts_by_owner(
+    mut db: PooledConnection<ConnectionManager<PgConnection>>,
+    user_wallet: &str,
+) -> Result<Vec<CurrentTokenOwnership>> {
     use crate::schema::current_token_ownerships::dsl::*;
 
     let results = current_token_ownerships

@@ -1,11 +1,11 @@
 use crate::models::current_collection_datas::query_info_by_collection_hash;
 use crate::models::current_token_datas::{query_nfts_by_collection, CurrentTokenData};
 use crate::AppState;
-use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
-use tracing::field::debug;
-use tracing::{debug, info};
+
+use tracing::{debug};
 
 #[get("collection/{hash}")]
 pub async fn all_collection(

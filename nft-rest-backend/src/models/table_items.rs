@@ -1,5 +1,5 @@
 use anyhow::Result;
-use bigdecimal::BigDecimal;
+
 use diesel::associations::HasTable;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};

@@ -1,23 +1,18 @@
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
-use actix_web::{get, rt, web, App, HttpServer, Responder};
+use actix_web::{rt, web, App, HttpServer};
 use anyhow::Result;
 use dotenvy::dotenv;
 
 extern crate redis;
-use redis::Commands;
 
 use std::{env, io};
-use tracing::{info, Level};
 
-#[macro_use]
-extern crate diesel_migrations;
-#[macro_use]
 extern crate diesel;
+extern crate diesel_migrations;
 
 use nft_rest_backend::db;
-use nft_rest_backend::models;
-use nft_rest_backend::schema;
+
 use nft_rest_backend::service;
 use nft_rest_backend::{api, AppState};
 
@@ -30,9 +25,9 @@ async fn main() -> Result<()> {
     dotenv().ok();
     tracing_log_init(1, "api.log", "./");
 
-    let url = env::var(&"CARGOS")?;
+    let url = env::var("CARGOS")?;
     let pool = db::get_connection_pool(&url);
-    let url = env::var(&"APT")?;
+    let url = env::var("APT")?;
     let apt_pool = db::get_connection_pool(&url);
 
     // let redis_client = my_redis::MemStore::new();
@@ -44,7 +39,7 @@ async fn main() -> Result<()> {
     let apt = apt_pool.clone();
     //move _redis table_items to nftmarket collection
 
-    let fetch_market = rt::spawn(async move { service::fetch_nfts_on_market(rdx, apt).await });
+    let _fetch_market = rt::spawn(async move { service::fetch_nfts_on_market(rdx, apt).await });
 
     let app_state = AppState {
         market_db: pool,
@@ -96,9 +91,9 @@ fn tracing_log_init(verbosity: u8, filename: &str, filepath: &str) {
         }
     }
 
-    if !filepath.is_empty() && !std::io::stdout().is_tty() && std::fs::metadata(&filepath).is_err()
+    if !filepath.is_empty() && !std::io::stdout().is_tty() && std::fs::metadata(filepath).is_err()
     {
-        std::fs::create_dir(&filepath).unwrap();
+        std::fs::create_dir(filepath).unwrap();
     }
 
     let file_appender = tracing_appender::rolling::hourly(filepath, filename);
