@@ -34,3 +34,25 @@
 // 5-----
 market emit event and change the database for list buy cancel_list make_bid cancel_bid
 // 6------
+
+
+
+
+## TODO
+
+// save all market list nft in the redis db
+// when query nft, also query the redis in db. find the nft list or not?
+//
+
+#Top1
+## ALL List nfts on own market.
+table_items
+
+select * from table_items where table_handle = '0xaeef8b346d7241bdc8db8b0ccc474b071e3b86f53e7dde459f154d1ea0554258' and is_deleted = 'f'
+
+setp1 - Query the item handle from indexes.
+setp2 - Save to redis and take
+setp3 - privade API for collection.
+
+## Query avlit for nfts.
+token_activities

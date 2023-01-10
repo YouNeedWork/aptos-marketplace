@@ -1,38 +1,44 @@
-use actix_web::{delete, get, post, put, web, App, HttpServer, Responder, HttpResponse};
-use diesel::PgConnection;
+use crate::models::current_collection_datas::query_info_by_collection_hash;
+use crate::models::current_token_datas::{query_nfts_by_collection, CurrentTokenData};
+use crate::AppState;
+use actix_web::{delete, get, post, put, web, App, HttpResponse, HttpServer, Responder};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel::PgConnection;
 use tracing::field::debug;
 use tracing::{debug, info};
-use crate::AppState;
-use crate::models::current_collection_datas::query_info_by_collection_hash;
-use crate::models::current_token_datas::{CurrentTokenData, query_nfts_by_collection};
-
 
 #[get("collection/{hash}")]
 pub async fn all_collection(
-    (hash,state): (web::Path<String>,web::Data<AppState>)
+    (hash, state): (web::Path<String>, web::Data<AppState>),
 ) -> impl Responder {
-    let conn: PooledConnection<ConnectionManager<PgConnection>> =
-        state.index_db.get().expect("couldn't get db connection from pool");
+    let conn: PooledConnection<ConnectionManager<PgConnection>> = state
+        .index_db
+        .get()
+        .expect("couldn't get db connection from pool");
 
     //select * from table_items where table_handle = '0xaeef8b346d7241bdc8db8b0ccc474b071e3b86f53e7dde459f154d1ea0554258' and is_deleted = 'f';
 
-    let nft_info = match query_info_by_collection_hash(conn,&hash) {
+    let nft_info = match query_info_by_collection_hash(conn, &hash) {
         Ok(nft_info) => nft_info,
-        Err(e) =>  {
-            debug!(err=e.to_string(),"error");
-            return HttpResponse::InternalServerError().finish()
-        },
+        Err(e) => {
+            debug!(err = e.to_string(), "error");
+            return HttpResponse::InternalServerError().finish();
+        }
     };
 
+    let conn: PooledConnection<ConnectionManager<PgConnection>> = state
+        .index_db
+        .get()
+        .expect("couldn't get db connection from pool");
 
-    let conn: PooledConnection<ConnectionManager<PgConnection>> =
-        state.index_db.get().expect("couldn't get db connection from pool");
-    let nfts:Vec<(CurrentTokenData)> = match query_nfts_by_collection(conn,&nft_info.creator_address,&nft_info.collection_name) {
+    let nfts: Vec<CurrentTokenData> = match query_nfts_by_collection(
+        conn,
+        &nft_info.creator_address,
+        &nft_info.collection_name,
+    ) {
         Ok(nfts) => nfts,
-        Err(_) =>  return HttpResponse::InternalServerError().finish(),
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
-
 
     // let results = nfts.iter().map(|(token_data,token_onwner)|{
     //     let metadata_uri = token_data.metadata_uri.clone();

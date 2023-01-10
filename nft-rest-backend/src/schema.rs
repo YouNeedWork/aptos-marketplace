@@ -58,7 +58,6 @@ diesel::table! {
     }
 }
 
-
 joinable!(current_token_ownerships -> current_token_datas( token_data_id_hash ));
 
 diesel::allow_tables_to_appear_in_same_query!(
@@ -66,3 +65,49 @@ diesel::allow_tables_to_appear_in_same_query!(
     current_token_datas,
     current_token_ownerships,
 );
+
+diesel::table! {
+    table_items (transaction_version, write_set_change_index) {
+        key -> Text,
+        transaction_version -> Int8,
+        write_set_change_index -> Int8,
+        transaction_block_height -> Int8,
+        table_handle -> Varchar,
+        decoded_key -> Jsonb,
+        decoded_value -> Nullable<Jsonb>,
+        is_deleted -> Bool,
+        inserted_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    table_metadatas (handle) {
+        handle -> Varchar,
+        key_type -> Text,
+        value_type -> Text,
+        inserted_at -> Timestamp,
+    }
+}
+
+diesel::table! {
+    token_activities (transaction_version, event_account_address, event_creation_number, event_sequence_number) {
+        transaction_version -> Int8,
+        event_account_address -> Varchar,
+        event_creation_number -> Int8,
+        event_sequence_number -> Int8,
+        collection_data_id_hash -> Varchar,
+        token_data_id_hash -> Varchar,
+        property_version -> Numeric,
+        creator_address -> Varchar,
+        collection_name -> Varchar,
+        name -> Varchar,
+        transfer_type -> Varchar,
+        from_address -> Nullable<Varchar>,
+        to_address -> Nullable<Varchar>,
+        token_amount -> Numeric,
+        coin_type -> Nullable<Text>,
+        coin_amount -> Nullable<Numeric>,
+        inserted_at -> Timestamp,
+        transaction_timestamp -> Timestamp,
+    }
+}

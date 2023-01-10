@@ -1,42 +1,55 @@
-use actix_web::{get, web, App, HttpServer, Responder};
-use anyhow::Result;
-use dotenvy::dotenv;
-use std::{env, io};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
+use actix_web::{get, rt, web, App, HttpServer, Responder};
+use anyhow::Result;
+use dotenvy::dotenv;
+
+extern crate redis;
+use redis::Commands;
+
+use std::{env, io};
 use tracing::{info, Level};
-
-
 
 #[macro_use]
 extern crate diesel_migrations;
 #[macro_use]
 extern crate diesel;
 
-
-use nft_rest_backend::{api, AppState};
 use nft_rest_backend::db;
 use nft_rest_backend::models;
 use nft_rest_backend::schema;
+use nft_rest_backend::service;
+use nft_rest_backend::{api, AppState};
 
 #[cfg(unix)]
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-
 #[actix_web::main]
 async fn main() -> Result<()> {
     dotenv().ok();
-    tracing_log_init(1,"api.log","./");
+    tracing_log_init(1, "api.log", "./");
 
     let url = env::var(&"CARGOS")?;
     let pool = db::get_connection_pool(&url);
     let url = env::var(&"APT")?;
     let apt_pool = db::get_connection_pool(&url);
 
+    // let redis_client = my_redis::MemStore::new();
+    // let rds = redis_client.clone();
+    // let mut con = rds.redis.get_connection()?;
+
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let rdx = client.clone();
+    let apt = apt_pool.clone();
+    //move _redis table_items to nftmarket collection
+
+    let fetch_market = rt::spawn(async move { service::fetch_nfts_on_market(rdx, apt).await });
+
     let app_state = AppState {
         market_db: pool,
         index_db: apt_pool,
+        redis_db: client,
     };
 
     HttpServer::new(move || {
@@ -49,9 +62,11 @@ async fn main() -> Result<()> {
             )
             .wrap(Logger::default())
             .app_data(web::Data::new(app_state.clone()))
-            .service(web::scope("/api")
-                .service(api::profile::all_profile)
-                .service(api::collection::all_collection))
+            .service(
+                web::scope("/api")
+                    .service(api::profile::all_profile)
+                    .service(api::collection::all_collection),
+            )
     })
     .bind(("127.0.0.1", 8081))?
     .run()
@@ -122,7 +137,6 @@ fn tracing_log_init(verbosity: u8, filename: &str, filepath: &str) {
             .event_format(format)
             .init();
     }
-
 
     //tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
