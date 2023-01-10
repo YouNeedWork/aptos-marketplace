@@ -1,10 +1,9 @@
-
-use crate::{AppState};
+use crate::AppState;
 use actix_web::{get, post, put, web, HttpResponse, Responder};
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
-use tracing::{info};
+use tracing::info;
 
 use crate::models::current_token_datas::{query_nfts_by_owner, CurrentTokenData};
 use crate::models::current_token_ownerships::CurrentTokenOwnership;
@@ -43,8 +42,6 @@ pub async fn all_profile(
 
             //req::get(&metadata_uri).send().await.unwrap().json::<serde_json::Value>().await.unwrap();
             //let image_url = metadata_uri.replace("ipfs://","https://ipfs.io/ipfs/");
-
-            
 
             Nft {
                 creator_address: token_data.creator_address.clone(),
