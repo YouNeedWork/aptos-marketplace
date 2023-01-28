@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 export default function MyProfile() {
     const [nfts, setNfts] = useState([]);
-
     const list_token = "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa::marketplace::list_token";
 
     const {
@@ -75,7 +74,6 @@ export default function MyProfile() {
                         </Box>)
                 })
             }
-
         </Box>
     )
 }

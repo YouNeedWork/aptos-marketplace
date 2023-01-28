@@ -30,6 +30,7 @@ async fn main() -> Result<()> {
     let url = env::var("APT")?;
     let apt_pool = db::get_connection_pool(&url);
 
+    
     // let redis_client = my_redis::MemStore::new();
     // let rds = redis_client.clone();
     // let mut con = rds.redis.get_connection()?;
@@ -37,7 +38,6 @@ async fn main() -> Result<()> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let rdx = client.clone();
     let apt = apt_pool.clone();
-    //move _redis table_items to nftmarket collection
 
     let _fetch_market = rt::spawn(async move { service::fetch_nfts_on_market(rdx, apt).await });
 
