@@ -3,18 +3,15 @@ use bigdecimal::BigDecimal;
 use diesel::associations::HasTable;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
-use field_count::FieldCount;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use tracing::info;
 
 use crate::schema;
 use schema::*;
 
-
 /// Need a separate struct for queryable because we don't want to define the inserted_at column (letting DB fill)
-#[derive(Debug, Identifiable, Queryable)]
+#[derive(Debug, Identifiable, Queryable, Deserialize, Serialize)]
 #[diesel(primary_key(collection_data_id_hash))]
 #[diesel(table_name = current_collection_datas)]
 pub struct CurrentCollectionDataQuery {
@@ -32,22 +29,16 @@ pub struct CurrentCollectionDataQuery {
     pub inserted_at: chrono::NaiveDateTime,
 }
 
-
-pub fn query_info_by_collection(
+pub fn query_info_by_collection_hash(
     mut db: PooledConnection<ConnectionManager<PgConnection>>,
-    address: &str,
-    c_name: &str,
-) -> Result<Vec<CurrentCollectionDataQuery>> {
+    hash: &str,
+) -> Result<CurrentCollectionDataQuery> {
     use crate::schema::current_collection_datas::dsl::*;
 
     info!("Querying nfts by collection");
 
-    let results = current_collection_datas::table()
-        .filter(creator_address.eq(address))
-        .filter(collection_name.eq(c_name))
-        .limit(20)
-        .load::<CurrentCollectionDataQuery>(&mut *db)?;
-
-    //println!("Displaying {} posts", results.len());
-    Ok(results)
+    current_collection_datas::table()
+        .filter(collection_data_id_hash.eq(hash))
+        .first(&mut *db)
+        .map_err(|e| e.into())
 }

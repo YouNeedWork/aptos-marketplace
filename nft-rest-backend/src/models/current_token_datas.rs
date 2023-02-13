@@ -1,22 +1,22 @@
 use anyhow::Result;
 use bigdecimal::BigDecimal;
-use diesel::associations::HasTable;
+
 use diesel::prelude::*;
+
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use field_count::FieldCount;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+
 use tracing::info;
 
-use crate::schema;
-use schema::*;
-use crate::schema::current_token_datas::dsl::current_token_datas;
+use crate::models::current_token_ownerships::CurrentTokenOwnership;
 
 
 
 
-#[derive(Debug, Queryable,Deserialize, FieldCount, Serialize)]
+#[derive(Debug, Queryable, Deserialize, FieldCount, Serialize)]
 #[diesel(primary_key(token_data_id_hash))]
 #[diesel(table_name = current_token_datas)]
 pub struct CurrentTokenData {
@@ -41,7 +41,6 @@ pub struct CurrentTokenData {
     pub inserted_at: chrono::NaiveDateTime,
 }
 
-
 pub fn query_nfts_by_collection(
     mut db: PooledConnection<ConnectionManager<PgConnection>>,
     address: &str,
@@ -50,13 +49,29 @@ pub fn query_nfts_by_collection(
     use crate::schema::current_token_datas::dsl::*;
 
     info!("Querying nfts by collection");
-
+    // collection_data_id_hash
     let results = current_token_datas
         .filter(creator_address.eq(address))
         .filter(collection_name.eq(c_name))
         .limit(20)
         .load::<CurrentTokenData>(&mut *db)?;
 
-    //println!("Displaying {} posts", results.len());
+    println!("Displaying {} posts", results.len());
     Ok(results)
+}
+
+pub fn query_nfts_by_owner(
+    mut db: PooledConnection<ConnectionManager<PgConnection>>,
+    address: &str,
+) -> Result<Vec<(CurrentTokenData, CurrentTokenOwnership)>> {
+    use crate::schema::*;
+
+    let query = current_token_datas::table.inner_join(current_token_ownerships::table);
+    let query = query
+        .filter(current_token_ownerships::owner_address.eq(address))
+        .filter(current_token_ownerships::amount.gt(BigDecimal::from(0)));
+
+    query
+        .load::<(CurrentTokenData, CurrentTokenOwnership)>(&mut *db)
+        .map_err(|e| e.into())
 }

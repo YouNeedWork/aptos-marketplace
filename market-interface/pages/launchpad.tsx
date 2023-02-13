@@ -8,7 +8,7 @@ export default function LaunchPad() {
     const public_mint = "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa::launchpad::public_mint";
     const private_mint = "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa::launchpad::private_mint";
 
-    const source = "0x215e8d37a09e0b5cef313638cba07a7969f0106fb9fa6411cf0fcd51a53388ef";
+    const source = "0xeebac1f5eea4446fd71e79a00660e91c03af910ef700f9f4d201f42c83a8f0d0";
 
     const {
         autoConnect,
@@ -21,25 +21,6 @@ export default function LaunchPad() {
         wallet: currentWallet
     } = useWallet();
 
-    /* 
-    collection_name: String,
-    collection_description: String,
-    baseuri: String,
-    royalty_payee_address: address,
-    royalty_points_denominator: u64,
-    royalty_points_numerator: u64,
-    presale_mint_time: u64,
-    public_sale_mint_time: u64,
-    presale_mint_price: u64,
-    public_sale_mint_price: u64,
-    presale_mint_amount: u64,
-    public_mint_amount: u64,
-    total_supply: u64,
-    collection_mutate_setting: vector<bool>,
-    token_mutate_setting: vector<bool>,
-    merkle_root: vector<u8>,
-    seeds: vector<u8>, 
-    */
     const wl = [
         "0xcaf1fbec4d4a122e2b2c1916259c81d9dee07b02a081aae1137a4fece01a6970",
         "0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa",
@@ -279,10 +260,10 @@ export default function LaunchPad() {
     const tree = new MerkleTree(leaves, SHA256, { sortPairs: true })
     let root = tree.getRoot().toString('hex')
     console.log(root);
-
-    console.log(sha256forWallets("0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa").toString());
-    console.log(account?.address);
-    const leaf = sha256forWallets("0x5e3536e53bd83844f8a2d3f5f93278c0c8f1114596e5e6e1d4a138de4566a9fa");
+    let addr = Array.isArray(account?.address)
+        ? JSON.stringify(account?.address, null, 2)
+        : account?.address?.toString() || account?.address?.toString() || "";
+    const leaf = sha256forWallets(addr);
     let proof = tree.getProof(leaf);
     console.log(tree.verify(proof, leaf, root));
 
@@ -364,6 +345,9 @@ export default function LaunchPad() {
                     ]
                 };
          */
+
+        console.log(proof);
+
         const payload: Types.TransactionPayload = {
             type: 'entry_function_payload',
             function: private_mint,

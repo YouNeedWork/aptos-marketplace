@@ -167,7 +167,7 @@ module CargosMarket::launchpad {
         number: u64,
     ) acquires ResourceInfo, Launch {
         let receiver_addr = signer::address_of(receiver);
-        let resource_data = borrow_global<ResourceInfo>(launch_resouce_account);
+        let resource_data = borrow_global_mut<ResourceInfo>(launch_resouce_account);
         let resource_signer_from_cap = account::create_signer_with_capability(&resource_data.resource_cap);
         let launch_data = borrow_global_mut<Launch>(launch_resouce_account);
         let now = aptos_framework::timestamp::now_seconds();
@@ -186,6 +186,7 @@ module CargosMarket::launchpad {
         } else {
             table::add(&mut launch_data.minted_by_users, receiver_addr, number);
         };
+
 
         // Open transfer && transfer to coin to create
         token::opt_in_direct_transfer(receiver, true);
@@ -223,7 +224,7 @@ module CargosMarket::launchpad {
                 freeze_token(launch_data,receiver_addr,t);
             };
 
-            event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+            event::emit_event(&mut resource_data.mint_event,TokenMintingEvent{
                 token_receiver_address:receiver_addr,
                 token_data_id
             });
@@ -244,7 +245,7 @@ module CargosMarket::launchpad {
         number: u64,
     ) acquires ResourceInfo, Launch {
         let receiver_addr = signer::address_of(receiver);
-        let resource_data = borrow_global<ResourceInfo>(launch_resouce_account);
+        let resource_data = borrow_global_mut<ResourceInfo>(launch_resouce_account);
         let resource_signer_from_cap = account::create_signer_with_capability(&resource_data.resource_cap);
         let launch_data = borrow_global_mut<Launch>(launch_resouce_account);
         assert!(number <= launch_data.public_mint_amount, INVALID_AMOUNT);
@@ -299,7 +300,7 @@ module CargosMarket::launchpad {
                 freeze_token(launch_data,receiver_addr,t);
             };
 
-            event::emit_event(*resource_data.mint_event,TokenMintingEvent{
+            event::emit_event(&mut resource_data.mint_event,TokenMintingEvent{
                 token_receiver_address:receiver_addr,
                 token_data_id
             });

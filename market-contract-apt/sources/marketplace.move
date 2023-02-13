@@ -1,5 +1,5 @@
 module CargosMarket::marketplace {
-    use aptos_token::token::{Token, TokenId};
+    use aptos_token::token::{Token, TokenId, MintTokenEvent};
     use aptos_std::table::Table;
     use std::signer;
     use aptos_token::token;
@@ -10,11 +10,30 @@ module CargosMarket::marketplace {
     use std::vector;
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin::{Coin};
+    use aptos_framework::event::{EventHandle, emit_event};
+    use std::signer::address_of;
+    use aptos_framework::event;
+    use aptos_framework::account;
+
+
+    struct ListEvent has drop, store {
+        seller_address: address,
+        seller_price:u64,
+        seller_token_id: TokenId,
+    }
+
+    struct BuyEvent has drop, store {
+        seller_address: address,
+        buyer_price:u64,
+        buyer_address:address,
+        buyer_token_id: TokenId,
+    }
 
     struct ListedItem has store {
         price: u64,
         locked_token: Token,
-        seller: address,
+        seller_address: address,
+        royalty: u64,
         offers: vector<ItemOffer>,
     }
 
@@ -23,24 +42,33 @@ module CargosMarket::marketplace {
         amount: Coin<AptosCoin>,
     }
 
-    struct CargosMarket has key {
+    struct Items has key {
+        take_market_tax:bool,
         market_depositor: address,
         market_denominator: u64,
         market_fee: u64,
-        items: Table<TokenId, ListedItem>
+        items: Table<TokenId, ListedItem>,
+        list_event:EventHandle<ListEvent>,
+        buy_event:EventHandle<BuyEvent>,
     }
 
-    public fun init_model(owner:&signer){
+    public entry fun init_model(owner:&signer){
+        assert!(address_of(owner)==@CargosMarket, 0);
+
         //init signer
-        if (!exists<CargosMarket>(@CargosMarket)) {
-            move_to(owner, CargosMarket {
+        if (!exists<Items>(@CargosMarket)) {
+            move_to(owner, Items {
+                take_market_tax:false,
                 market_denominator:10000,
                 market_fee: 200,
                 market_depositor:@CargosMarket,
-                 items: table::new<TokenId, ListedItem>(),
+                items: table::new<TokenId, ListedItem>(),
+                list_event: account::new_event_handle<ListEvent>(owner),
+                buy_event: account::new_event_handle<BuyEvent>(owner)
             });
         };
     }
+
 
     public entry fun list_token(
         sender: &signer,
@@ -48,20 +76,26 @@ module CargosMarket::marketplace {
         collection_names: vector<String>,
         names: vector<String>,
         prices: vector<u64>,
-    ) acquires CargosMarket {
+        royaltys: vector<u64>,
+    ) acquires Items {
         assert!(!vector::is_empty(&creators), 0);
         assert!(!vector::is_empty(&collection_names), 0);
         assert!(!vector::is_empty(&names), 0);
         assert!(!vector::is_empty(&prices), 0);
+        assert!(!vector::is_empty(&royaltys), 0);
 
         assert!(
             vector::length(&creators) == vector::length(&collection_names) &&
-                vector::length(&creators) == vector::length(&names) &&
-                vector::length(&creators) == vector::length(&prices),
+            vector::length(&creators) == vector::length(&names) &&
+            vector::length(&creators) == vector::length(&prices) &&
+            vector::length(&creators) == vector::length(&royaltys),
             0
         );
 
-        let listed_items_data = borrow_global_mut<CargosMarket>(@CargosMarket);
+        let seller_address = address_of(sender);
+
+
+        let listed_items_data = borrow_global_mut<Items>(@CargosMarket);
         let listed_items = &mut listed_items_data.items;
 
         let i = 0;
@@ -72,47 +106,27 @@ module CargosMarket::marketplace {
             let collection_name = *vector::borrow(&collection_names, i);
             let name = *vector::borrow(&names, i);
             let price = *vector::borrow(&prices, i);
-
+            let royalty = *vector::borrow(&royaltys, i);
 
             let token_id = token::create_token_id_raw(creator, collection_name, name, 0);
-            let token = token::withdraw_token(sender, token_id, 1);
+            let locked_token = token::withdraw_token(sender, token_id, 1);
             table::add(listed_items, token_id, ListedItem {
+                royalty,
                 price,
-                locked_token: token,
-                seller:signer::address_of(sender),
+                locked_token,
+                seller_address,
                 offers: vector::empty(),
             });
 
-            //TODO emit event
+            emit_event(&mut listed_items_data.list_event,ListEvent{
+                seller_address,
+                seller_price:price,
+                seller_token_id:token_id,
+            });
+
             i = i + 1;
         }
     }
-
-    // public entry fun list_token(
-    //     sender: &signer,
-    //     creator: address,
-    //     collection_name: String,
-    //     name: String,
-    //     price: u64
-    // ) acquires ListedItemsData {
-    //     let sender_addr = signer::address_of(sender);
-    //     if (!exists<ListedItemsData>(sender_addr)) {
-    //         move_to(sender, ListedItemsData {
-    //             listed_items: table::new<TokenId, ListedItem>(),
-    //         });
-    //     };
-    //
-    //     let listed_items_data = borrow_global_mut<ListedItemsData>(sender_addr);
-    //     let listed_items = &mut listed_items_data.listed_items;
-    //
-    //     let token_id = token::create_token_id_raw(creator, collection_name, name, 0);
-    //     let token = token::withdraw_token(sender, token_id, 1);
-    //     table::add(listed_items, token_id, ListedItem {
-    //         price,
-    //         locked_token: token,
-    //         offers: vector::empty(),
-    //     })
-    // }
 
 
     public entry fun buy_token(
@@ -120,7 +134,7 @@ module CargosMarket::marketplace {
         creators: vector<address>,
         collection_names: vector<String>,
         names: vector<String>,
-    ) acquires CargosMarket {
+    ) acquires Items {
         assert!(!vector::is_empty(&creators), 0);
         assert!(!vector::is_empty(&collection_names), 0);
         assert!(!vector::is_empty(&names), 0);
@@ -131,7 +145,7 @@ module CargosMarket::marketplace {
             0
         );
 
-        let listedItemsData = borrow_global_mut<CargosMarket>(@CargosMarket);
+        let listedItemsData = borrow_global_mut<Items>(@CargosMarket);
         let listed_items = &mut listedItemsData.items;
 
 
@@ -145,7 +159,7 @@ module CargosMarket::marketplace {
             let token_id = token::create_token_id_raw(creator, collection_name, name, 0);
 
             //check if token is listed
-            let ListedItem { price, locked_token,seller, offers } = table::remove(listed_items, token_id);
+            let ListedItem { price, locked_token,seller_address, offers,royalty } = table::remove(listed_items, token_id);
             cancel_offer(&mut offers);
             vector::destroy_empty(offers);
             let market_amount = price * listedItemsData.market_fee / listedItemsData.market_denominator;
@@ -156,39 +170,20 @@ module CargosMarket::marketplace {
 
             coin::transfer<aptos_coin::AptosCoin>(sender, listedItemsData.market_depositor, market_amount);
             coin::transfer<aptos_coin::AptosCoin>(sender, token::get_royalty_payee(&royalty), create_amount);
-            coin::transfer<aptos_coin::AptosCoin>(sender, seller, seller_amount);
+            coin::transfer<aptos_coin::AptosCoin>(sender, seller_address, seller_amount);
 
             token::deposit_token(sender, locked_token);
 
-            //TODO emit event
+            emit_event(&mut listedItemsData.buy_event,BuyEvent{
+                buyer_address:signer::address_of(sender),
+                buyer_price:price,
+                buyer_token_id:token_id,
+                seller_address,
+            });
 
             i = i + 1;
         }
     }
-
-    // public entry fun buy_token(
-    //     sender: &signer,
-    //     seller: address,
-    //     creator: address,
-    //     collection_name: String,
-    //     name: String,
-    // ) acquires ListedItemsData {
-    //     let sender_addr = signer::address_of(sender);
-    //     assert!(sender_addr != seller, 0);
-    //
-    //     let listedItemsData = borrow_global_mut<ListedItemsData>(seller);
-    //     let listed_items = &mut listedItemsData.listed_items;
-    //
-    //     let token_id = token::create_token_id_raw(creator, collection_name, name, 0);
-    //     let listed_item = table::borrow_mut(listed_items, token_id);
-    //
-    //
-    //     let ListedItem { price, locked_token, offers } = table::remove(listed_items, token_id);
-    //     cancel_offer(&mut offers);
-    //     vector::destroy_empty(offers);
-    //     coin::transfer<aptos_coin::AptosCoin>(sender, seller, price);
-    //     token::deposit_token(sender, locked_token)
-    // }
 
     fun cancel_offer(offers: &mut vector<ItemOffer>) {
         let i = 0;
