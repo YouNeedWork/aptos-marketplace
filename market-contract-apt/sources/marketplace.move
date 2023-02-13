@@ -29,6 +29,21 @@ module CargosMarket::marketplace {
         buyer_token_id: TokenId,
     }
 
+    struct BidEvent has drop, store {
+        seller_address: address,
+        buyer_price:u64,
+        buyer_address:address,
+        buyer_token_id: TokenId,
+    }
+
+    struct CancelEvent has drop, store {
+        seller_address: address,
+        buyer_price:u64,
+        buyer_address:address,
+        buyer_token_id: TokenId,
+    }
+
+
     struct ListedItem has store {
         price: u64,
         locked_token: Token,
@@ -50,10 +65,17 @@ module CargosMarket::marketplace {
         items: Table<TokenId, ListedItem>,
         list_event:EventHandle<ListEvent>,
         buy_event:EventHandle<BuyEvent>,
+        bid_event:EventHandle<BidEvent>,        
+        cancel_event:EventHandle<CancelEvent>,
     }
 
+    const ENO_NOT_ADMIN = 1000;
+    const ENO_PARAMS_LENGTH = 0;
+    const ENO_ = 1;
+
+
     public entry fun init_model(owner:&signer){
-        assert!(address_of(owner)==@CargosMarket, 0);
+        assert!(address_of(owner) == @CargosMarket, ENO_NOT_ADMIN);
 
         //init signer
         if (!exists<Items>(@CargosMarket)) {
@@ -64,11 +86,12 @@ module CargosMarket::marketplace {
                 market_depositor:@CargosMarket,
                 items: table::new<TokenId, ListedItem>(),
                 list_event: account::new_event_handle<ListEvent>(owner),
-                buy_event: account::new_event_handle<BuyEvent>(owner)
+                buy_event: account::new_event_handle<BuyEvent>(owner),
+                bid_event: account::new_event_handle<BidEvent>(owner),
+                cancel_event: account::new_event_handle<CancelEvent>(owner),
             });
         };
     }
-
 
     public entry fun list_token(
         sender: &signer,
@@ -78,23 +101,22 @@ module CargosMarket::marketplace {
         prices: vector<u64>,
         royaltys: vector<u64>,
     ) acquires Items {
-        assert!(!vector::is_empty(&creators), 0);
-        assert!(!vector::is_empty(&collection_names), 0);
-        assert!(!vector::is_empty(&names), 0);
-        assert!(!vector::is_empty(&prices), 0);
-        assert!(!vector::is_empty(&royaltys), 0);
+        assert!(!vector::is_empty(&creators), ENO_PARAMS_LENGTH);
+        assert!(!vector::is_empty(&collection_names), ENO_PARAMS_LENGTH);
+        assert!(!vector::is_empty(&names), ENO_PARAMS_LENGTH);
+        assert!(!vector::is_empty(&prices), ENO_PARAMS_LENGTH);
+        assert!(!vector::is_empty(&royaltys), ENO_PARAMS_LENGTH);
+
 
         assert!(
             vector::length(&creators) == vector::length(&collection_names) &&
             vector::length(&creators) == vector::length(&names) &&
             vector::length(&creators) == vector::length(&prices) &&
             vector::length(&creators) == vector::length(&royaltys),
-            0
+            ENO_PARAMS_LENGTH
         );
 
         let seller_address = address_of(sender);
-
-
         let listed_items_data = borrow_global_mut<Items>(@CargosMarket);
         let listed_items = &mut listed_items_data.items;
 
@@ -110,6 +132,7 @@ module CargosMarket::marketplace {
 
             let token_id = token::create_token_id_raw(creator, collection_name, name, 0);
             let locked_token = token::withdraw_token(sender, token_id, 1);
+
             table::add(listed_items, token_id, ListedItem {
                 royalty,
                 price,
@@ -135,14 +158,14 @@ module CargosMarket::marketplace {
         collection_names: vector<String>,
         names: vector<String>,
     ) acquires Items {
-        assert!(!vector::is_empty(&creators), 0);
-        assert!(!vector::is_empty(&collection_names), 0);
-        assert!(!vector::is_empty(&names), 0);
+        assert!(!vector::is_empty(&creators), ENO_PARAMS_LENGTH);
+        assert!(!vector::is_empty(&collection_names), ENO_PARAMS_LENGTH);
+        assert!(!vector::is_empty(&names), ENO_PARAMS_LENGTH);
 
         assert!(
             vector::length(&creators) == vector::length(&collection_names) &&
                 vector::length(&creators) == vector::length(&names),
-            0
+            ENO_PARAMS_LENGTH
         );
 
         let listedItemsData = borrow_global_mut<Items>(@CargosMarket);
@@ -194,4 +217,5 @@ module CargosMarket::marketplace {
             i = i + 1;
         }
     }
+    
 }
